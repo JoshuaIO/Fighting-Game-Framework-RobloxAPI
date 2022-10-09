@@ -23,20 +23,21 @@ local Main = {
 }
 local event = game.ReplicatedStorage.Events.MainAction
 local eventClient = game.ReplicatedStorage.Events.MainActionClient
-
+local HelperModule = require(Main.char:WaitForChild("CharacterSample").CharacterScripts.HelperTable)
+--local HitboxTable = HelperModule.hitboxTable
 local debounce = false
-function Main.BodyVelocity(parent, force, direction, waitTime)
+function Main.BodyVelocity(parent, object)--force, direction, waitTime)--(parent,table)
 	local humanStateFalling = Enum.HumanoidStateType.FallingDown
 	Main.humanoid:SetStateEnabled(humanStateFalling, false)
 	local bodyVelocity = Instance.new("BodyVelocity")
 	print(parent)
-	print(force)
-	print(direction)
-	print(waitTime)
+	print(object.force)
+	print(object.direction)
+	print(object.waitTime)
 	bodyVelocity.Parent = parent
-	bodyVelocity.MaxForce = force--Force
-	bodyVelocity.Velocity = direction --Direction
-	wait(waitTime)--Wait
+	bodyVelocity.MaxForce = object.force--Force
+	bodyVelocity.Velocity = object.knockback --Direction
+	wait(object.duration)--Wait
 	bodyVelocity:Destroy()
 	
 end
@@ -62,29 +63,32 @@ function Main.Knockdown()--Values need to be passed
 	end
 end
 
-function Main.Hitstun(duration,knockback,force) --Values need to be passed
+function Main.Hitstun(object)--duration,knockback,force)--table --Values need to be passed
 	Main.humanoid.WalkSpeed = 0
 	Main.humanoid.JumpPower = 0
 	Main.humanoid.AutoRotate = false
 	local check = "serverCheck"
 	event:FireServer(check)
 	local randomAnimSelect = math.random(1,2)
-	print(randomAnimSelect)
-	print(duration)
+
+	print(object.duration)
+	if (object.victimHumanoidRootPart ~= nil) then
+		object.victimHumanoidRootPart.CFrame = CFrame.lookAt(object.victimHumanoidRootPart.Position, object.attackerHumanoidRootPart.Position)
+	end
 	if randomAnimSelect == 1 then 
 		local animPlay = Main.humanoid.Animator:LoadAnimation(animationList.hitstun1)
 		animPlay:Play()
-		print(duration)
-		animPlay:AdjustSpeed(duration/2)
-		Main.BodyVelocity(Main.char.HumanoidRootPart,force,knockback,duration)
+		print(object.duration)
+		animPlay:AdjustSpeed(object.duration/2)
+		Main.BodyVelocity(Main.char.HumanoidRootPart,object)--force,knockback,duration)
 		wait(1)
 		animPlay:AdjustSpeed(1)
 		wait(Main.hitstunDuration.Value)
 	else
 		local animPlay = Main.humanoid.Animator:LoadAnimation(animationList.hitstun2)
 		animPlay:Play()
-		animPlay:AdjustSpeed(duration/2)
-		Main.BodyVelocity(Main.char.HumanoidRootPart,force,knockback,duration)
+		animPlay:AdjustSpeed(object.duration/2)
+		Main.BodyVelocity(Main.char.HumanoidRootPart,object)--force,knockback,duration)
 		wait(1)
 		animPlay:AdjustSpeed(1)
 		wait(Main.hitstunDuration.Value)
@@ -99,16 +103,17 @@ end
 
 function Main.Dash()--Values need to be passed
 	local physicsLocation = Main.char.HumanoidRootPart
-	local force = Vector3.new(math.huge,math.huge,math.huge)
-	local direction = physicsLocation.CFrame.LookVector.Unit *60
-	local waitTime = 0.5
 	local check = "serverCheck"
+	local object = HelperModule.hitboxTable
+	object.force = Vector3.new(math.huge,math.huge,math.huge)
+	object.knockback = physicsLocation.CFrame.LookVector.Unit *60
+	object.duration = 0.5
 	event:FireServer(Main.player,check)
 	if debounce == false then
 		debounce = true
 		local animPlay = Main.humanoid.Animator:LoadAnimation(animationList.dash)
 		animPlay:Play()
-		Main.BodyVelocity(physicsLocation,force,direction,waitTime)
+		Main.BodyVelocity(physicsLocation,object)
 		debounce = false
 	end
 		
@@ -147,25 +152,28 @@ function Main.CreateHurtbox(player)--Pass Hurtbox Location
 		event:FireServer(Main.char, msg)
 end
 
-function Main.CreateHitbox(areaLocation,damage,hitstunDuration, hitboxTime,size, knockback,force,humanoidAttacker)--Pass Hitbox Location
+function Main.CreateHitbox(hitboxTable)--areaLocation,damage,hitstunDuration, hitboxTime,size, knockback,force,humanoidAttacker)--Pass Hitbox Location
 	local debounce = false
 	local debounce2 = false
-	local newTest = areaLocation
+	print(hitboxTable)
+
+	local newTest = hitboxTable.location
+	print(newTest)
 	--print(hitstunDuration)
 	Main.hitboxLocation.Value = newTest.CFrame
 --	hitboxTime = (1/60) 
-	Main.hitboxTime.Value = hitboxTime
+	Main.hitboxTime.Value = hitboxTable.hitboxTime
 	if debounce == false then
 		debounce = true
 		local hitbox = Instance.new("Part")
 		hitbox.Transparency = 0.6
-		hitbox.Parent = areaLocation.Parent--Main.char
+		hitbox.Parent = hitboxTable.location.Parent--Main.char
 		print(hitbox.Parent)
 		hitbox.Name = "Hitbox"
 		hitbox.Color = Color3.fromRGB(255, 20, 20)
 		hitbox.CanCollide = false
 		hitbox.Massless = true
-		hitbox.Size = size
+		hitbox.Size = hitboxTable.size
 		hitbox.CFrame = Main.hitboxLocation.Value
 		hitbox.Orientation = newTest.Orientation
 		debounce = true
@@ -173,74 +181,87 @@ function Main.CreateHitbox(areaLocation,damage,hitstunDuration, hitboxTime,size,
 		weld.Archivable = true
 		weld.Name = "hitboxWeld"
 		weld.Parent = hitbox
-		weld.Part0 = areaLocation
+		weld.Part0 = hitboxTable.location
 		weld.Part1 = hitbox
 		
 		hitbox.Touched:Connect(function(victimPlayer)
+
 			local victim = victimPlayer.Parent
+			local playersX = game.Players
 			local humanoidVictim = victimPlayer.Parent:FindFirstChild("Humanoid")
 			local humanoidVictimHead = victimPlayer.Parent:FindFirstChild("Head")
-			--if humanoidVictim.Parent ~= hitbox.Parent and debounce2==false then
-			if victim ~= hitbox.Parent and debounce2 == false and humanoidVictim ~= humanoidAttacker then
+			local humanoidVictimHRP = victimPlayer.Parent:FindFirstChild("HumanoidRootPart")
+			
+			if victim ~= hitbox.Parent and debounce2 == false and humanoidVictim ~= hitboxTable.attackerHumanoid then 
+				print("Touched!!!!")
 				debounce2= true
-				humanoidVictimHead.CFrame = CFrame.lookAt(humanoidVictimHead.Position, hitbox.Position)
-				local playerInPlayers = game.Players:GetPlayerFromCharacter(victimPlayer.Parent)
-				event:FireServer(humanoidVictim, "hitbox",playerInPlayers,damage,hitstunDuration,knockback,force)
+				hitboxTable.victim = victim
+				hitboxTable.victimHumanoid = humanoidVictim
+				print(hitboxTable.victim)
+				local victimPlayerLoad = playersX:GetPlayerFromCharacter(victim)
+		
+				hitboxTable.victimPlayer = victimPlayerLoad
+				hitboxTable.victimHumanoidRootPart = humanoidVictimHRP
+				print(hitboxTable.victimHumanoidRootPart)
+				print(humanoidVictim)
+				--local playerInPlayers = game.Players:GetPlayerFromCharacter(victimPlayer.Parent)
+				--event:FireServer(humanoidVictim, "hitbox",playerInPlayers,hitboxTable.damage, hitboxTable.duration, hitboxTable.knockback, hitboxTable.force)--damage,hitstunDuration,knockback,force)--table
+				event:FireServer(humanoidVictim,hitboxTable)
 		end-- pass more
 		end)
 		wait(Main.hitboxTime.Value)
 		hitbox:Destroy()
 		debounce = false
 		debounce2 = false
-	end
+	end	
 end
 
 
-function Main.ClientCalls(msg,duration,knockback,force)
+function Main.ClientCalls(object)--msg,duration,knockback,force)--(msg, table)
 	local waitTime = 0.5
-	if msg == "hit" then
-		--print(msg)
+	if object.msg == "hit" then
+		print(object.msg)
 	--	print(duration)
 		--print(knockback)
 		--print(force)
 		local newThread = coroutine.create(Main.Hitstun)
-		coroutine.resume(newThread,duration,knockback,force)
+		coroutine.resume(newThread,object)--duration,knockback,force)
 		--Main.Hitstun(duration,knockback,force)
 	end
 	
 end
 
-function Main.newClientTouch(location,damage,hitDuration,hitboxTime,size,knockback,force, humanoidAttacker,msg,projectileTravelSpeed)
-	--print("ClientCaptured")
+function Main.newClientTouch(object)--location,damage,hitDuration,hitboxTime,size,knockback,force, humanoidAttacker,msg,projectileTravelSpeed)--table
+	print(object)
 	--print(location)
 	--print(damage)
 	--print(hitDuration)
-	if msg == "Melee" then
+	if object.msg == "Melee" then
 	local newThread = coroutine.create(Main.CreateHitbox)
-	coroutine.resume(newThread, location,damage,hitDuration,hitboxTime,size,knockback,force)
+	coroutine.resume(newThread, object)--location,damage,hitDuration,hitboxTime,size,knockback,force)--table
 		--	Main.CreateHitbox(location,damage,hitDuration,hitboxTime,size,knockback,force)
    end
-   if msg == "ProjectileFire" then
+   if object.msg == "ProjectileFire" then
 	local newProjectile = Instance.new("Part")
-	newProjectile.Parent = location
+	newProjectile.Parent = object.location
 	newProjectile.Name = "Projectile"
 	newProjectile.Color = Color3.new(0, 0.317647, 1)
 	newProjectile.Massless = true
 	newProjectile.CanCollide = false--false
 	newProjectile.Transparency = 0.5
-	newProjectile.CFrame = location.CFrame
+	newProjectile.CFrame = object.location.CFrame
 	newProjectile.Size = Vector3.new(5,5,5)
-
+ 
 	local physicsMovement = Instance.new("BodyVelocity")
 	physicsMovement.Parent = newProjectile
 	physicsMovement.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
-		physicsMovement.Velocity = newProjectile.CFrame.LookVector.Unit*projectileTravelSpeed
-
+		physicsMovement.Velocity = newProjectile.CFrame.LookVector.Unit*object.projectileTravelSpeed
+    object.projectile = newProjectile
 	local newThread2 = coroutine.create(Main.CreateHitbox)
-	coroutine.resume(newThread2, newProjectile,damage,hitDuration,hitboxTime,size,knockback,force,humanoidAttacker)
-	wait(hitboxTime)
+	coroutine.resume(newThread2, object)--damage,hitDuration,hitboxTime,size,knockback,force,humanoidAttacker)
+	wait(object.duration)
 	newProjectile:Destroy()
-
+	object.projectile:Destroy()
    end
 end
 --[[

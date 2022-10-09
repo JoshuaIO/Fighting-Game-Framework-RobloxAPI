@@ -4,15 +4,15 @@ local eventClient =game.ReplicatedStorage.Events.MainActionClient
 local physicsEvent = game.ReplicatedStorage.Events.ServerToPhysics
 
 --Needed for remote event interactions
-function mainServ.ServerCalls(player,playerPassed,msg,playerInPlayers, itemParent, angle, knockback, force)
+function mainServ.ServerCalls(player,playerPassed, object) --msg,playerInPlayers, itemParent, angle, knockback, force)
 	
-	if msg == "serverCheck" then
+	if object.msg == "serverCheck" then
 		print("ServerCall")
 	end
-	if msg == "loadWeldZ" then
+	if object.msg == "loadWeldZ" then
 		
 		local weldItem = playerPassed:Clone()
-		weldItem.Parent = itemParent
+		weldItem.Parent = object.location
 		weldItem.PrimaryPart = weldItem.Handle
 		local weldAngle = angle
 		weldItem:SetPrimaryPartCFrame(playerInPlayers.CFrame * weldAngle)
@@ -46,24 +46,23 @@ function mainServ.ServerCalls(player,playerPassed,msg,playerInPlayers, itemParen
 		playerPassed.Humanoid.WalkSpeed = charSamp.DataParams.WalkSpeed.Value
 		playerPassed.HumanoidRootPart.Anchored = false
 	end
-	if msg == "hitbox"then
-		
-		local victim = playerPassed
-		if playerInPlayers ~= nil then
-			victim:TakeDamage(itemParent)
+	
+	if object.msg == "hitbox" or object.msg == "Melee" then
+		print(object)
+		local victim = object.victimHumanoid
+		if object.victimPlayer ~= nil then
+			print(object.damage)
+			victim:TakeDamage(object.damage)
 			print(player)
 			print(playerPassed)
-			print(msg)
-			print(playerInPlayers)
-			print(itemParent)
-			print(angle)
-			print(knockback)
-			print(force)
-			
-			eventClient:FireClient(playerInPlayers, "hit",angle,knockback,force)
+			object.msg = "hit"
+			print(object.victim)
+			print(object.attacker)
+			print(object.victimPlayer)
+			eventClient:FireClient(object.victimPlayer, object)
 		else if victim then
-			victim:TakeDamage(itemParent)
-				print(playerInPlayers)
+			victim:TakeDamage(object.damage)
+				--print(playerInPlayers)
 				print(player)
 				print(victim)
 				victim.WalkSpeed = 0
@@ -75,21 +74,21 @@ function mainServ.ServerCalls(player,playerPassed,msg,playerInPlayers, itemParen
 				print(hitstunValue)
 				hitstunValue.Value = true
 				print(randomAnimSelect)
-				physicsEvent:FireAllClients(victimHumanoidRootPart,force,knockback,angle)
+				physicsEvent:FireAllClients(victimHumanoidRootPart,object)
 			if randomAnimSelect == 1 then 
 					local animPlay =victim.Animator:LoadAnimation(victim.Parent.CharacterSample.Animations.States.Hitstun1)
 					animPlay:Play()
 					animPlay:AdjustSpeed(0)
-					wait(angle)
+					wait(object.duration)
 					animPlay:AdjustSpeed(1)
-					wait(angle)
+					wait(object.duration)
 			else
 					local animPlay = victim.Animator:LoadAnimation(victim.Parent.CharacterSample.Animations.States.Hitstun2)
 					animPlay:Play()
 					animPlay:AdjustSpeed(0)
-					wait(angle*2)
+					wait(object.duration*2)
 					animPlay:AdjustSpeed(1)
-					wait(angle)
+					wait(object.duration)
 			end
 				victim.WalkSpeed = 25
 				victim.JumpPower = 70
