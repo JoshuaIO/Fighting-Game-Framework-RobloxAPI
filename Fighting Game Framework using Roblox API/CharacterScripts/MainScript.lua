@@ -1,18 +1,19 @@
 local animationList = require(script.Parent.Animations)
+local playerSample = game.Players.LocalPlayer
 local Main = {
 	-----------------------------------------------------------
 	-- Character State Value
 	-----------------------------------------------------------
-	activeState = script.Parent.Parent.CharacterState.ActiveState,
-	hitboxLocation = script.Parent.Parent.CharacterState.HitboxLocation,
-	hitboxTime = script.Parent.Parent.CharacterState.HitboxTime,
-	hitstun = script.Parent.Parent.CharacterState.Hitstun,
-	hurtboxLocation = script.Parent.Parent.CharacterState.HurtboxLocation,
-	knockdown = script.Parent.Parent.CharacterState.Knockdown,
-	isCrouching = script.Parent.Parent.CharacterState.isCrouching,
-	isDashing = script.Parent.Parent.CharacterState.isDashing,
-	isGuarding = script.Parent.Parent.CharacterState.isGuarding,
-	hitstunDuration =script.Parent.Parent.CharacterState.HitstunDuration,
+	activeState = playerSample.CharacterSample.CharacterState.ActiveState,
+	hitboxLocation =  playerSample.CharacterSample.CharacterState.HitboxLocation,
+	hitboxTime =  playerSample.CharacterSample.CharacterState.HitboxTime,
+	hitstun =  playerSample.CharacterSample.CharacterState.Hitstun,
+	hurtboxLocation =  playerSample.CharacterSample.CharacterState.HurtboxLocation,
+	knockdown =  playerSample.CharacterSample.CharacterState.Knockdown,
+	isCrouching =  playerSample.CharacterSample.CharacterState.isCrouching,
+	isDashing =  playerSample.CharacterSample.CharacterState.isDashing,
+	isGuarding =  playerSample.CharacterSample.CharacterState.isGuarding,
+	hitstunDuration = playerSample.CharacterSample.CharacterState.HitstunDuration,
 	--------------------------------------------------------------
 	-- Generics
 	--------------------------------------------------------------
@@ -21,9 +22,10 @@ local Main = {
 	humanoid = game.Players.LocalPlayer.Character.Humanoid,
 	
 }
+
 local event = game.ReplicatedStorage.Events.MainAction
 local eventClient = game.ReplicatedStorage.Events.MainActionClient
-local HelperModule = require(Main.char:WaitForChild("CharacterSample").CharacterScripts.HelperTable)
+local HelperModule = require(game.ReplicatedStorage.CharacterScripts.HelperTable)
 --local HitboxTable = HelperModule.hitboxTable
 local debounce = false
 function Main.BodyVelocity(parent, object)--force, direction, waitTime)--(parent,table)
