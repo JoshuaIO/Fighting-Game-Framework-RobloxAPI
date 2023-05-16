@@ -26,6 +26,11 @@ local Main = {
 local event = game.ReplicatedStorage.Events.MainAction
 local eventClient = game.ReplicatedStorage.Events.MainActionClient
 local HelperModule = require(game.ReplicatedStorage.CharacterScripts.HelperTable)
+local runService = game:GetService("RunService")
+local collisionGroupPlayer = "PlayerCollision"
+local collisionGroupHitPlayer = "HitPlayerCollision"
+local collisionRayGroup = "RayGroup"
+local connector
 --local HitboxTable = HelperModule.hitboxTable
 local debounce = false
 function Main.BodyVelocity(parent, object)--force, direction, waitTime)--(parent,table)
@@ -148,10 +153,25 @@ function Main.Guarding()
 	end
 		
 end
-function Main.CreateHurtbox(player)--Pass Hurtbox Location
+
+function Main.CollisionSetter(item,collisionGroup)
+	--item is the model that will be searched through
+	--collision Group will be set to this
+	local humanList = item:GetChildren()
+	for index=1,#humanList,1 do
+		if humanList[index]:isA("BasePart") then
+			humanList[index].CollisionGroup = collisionGroup
+		end
+	
+	end
+--	print(item)
+--	print(#item)
+end
+
+function Main.CreateHurtbox(hitboxTable)--Pass Hurtbox Location
 	Main.hurtboxLocation.Value = Main.char.HumanoidRootPart.Position
-	local msg = "newHurtbox"
-		event:FireServer(Main.char, msg)
+	--local msg = "newHurtbox"
+	--	event:FireServer(hitboxTable)
 end
 
 function Main.CreateHitbox(hitboxTable)--areaLocation,damage,hitstunDuration, hitboxTime,size, knockback,force,humanoidAttacker)--Pass Hitbox Location
@@ -218,6 +238,167 @@ function Main.CreateHitbox(hitboxTable)--areaLocation,damage,hitstunDuration, hi
 	end	
 end
 
+function Main.MagnitudeHitbox(hitboxTable)
+	local list = game.Workspace:GetChildren()
+	for index=1,#list,1 do
+		if list[index]:FindFirstChild("HumanoidRootPart") then
+			if (hitboxTable.attackerHumanoidRootPart.Position - list[index]:FindFirstChild("HumanoidRootPart").Position).Magnitude < hitboxTable.magnitudeRange then
+				if list[index]:FindFirstChild("Humanoid") then
+					--hitboxTable.victim[index]
+					local playerFound = game.Players:GetPlayerFromCharacter(list[index])
+				
+					if playerFound ~= Main.player then
+						hitboxTable.victim=list[index]
+						hitboxTable.victimHumanoid=list[index]:FindFirstChild("Humanoid")
+						hitboxTable.victimHumanoidRootPart =list[index]:FindFirstChild("HumanoidRootPart")
+						hitboxTable.victimPlayer=playerFound
+						event:FireServer(hitboxTable)
+					end
+					
+				end
+			end
+		end
+		
+	end
+end
+
+function Main.BoundingRayBox(hitboxTable)
+	local validation  = hitboxTable.validation
+	local hitbox = Instance.new("Part")
+	local count =0
+	hitbox.Transparency = 0.6
+	hitbox.Parent = hitboxTable.location.Parent--Main.char
+	--print(hitbox.Parent)
+	hitbox.Name = "Hitbox"
+	hitbox.Color = Color3.fromRGB(255, 20, 20)
+	hitbox.CanCollide = false
+	hitbox.Massless = true
+	hitbox.Size = hitboxTable.size
+	local newTest = hitboxTable.location
+	Main.hitboxLocation.Value = newTest.CFrame
+	hitbox.CFrame = Main.hitboxLocation.Value
+	hitbox.Orientation = newTest.Orientation
+	local validator = Instance.new("Part")
+	validator.Transparency = 0.7
+	validator.Parent = hitboxTable.validLocation
+	validator.CFrame = hitboxTable.cframe
+	validator.Size = hitboxTable.validSize
+	validator.CanCollide = false
+	validator.Massless = true
+	local direction = validator.CFrame.LookVector * 60
+	
+	debounce = true
+	local weld = Instance.new("WeldConstraint")
+	local weld2 = Instance.new("WeldConstraint")
+	weld.Archivable = true
+	weld.Name = "hitboxWeld"
+	weld.Parent = hitbox
+	weld.Part0 = hitboxTable.location
+	weld.Part1 = hitbox
+	weld2.Name = "validWeld"
+	weld2.Parent = validator
+	weld2.Part0 = validator
+	weld2.Part1 = hitbox
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Blacklist
+	params.FilterDescendantsInstances = {hitboxTable.location,hitbox,validator, hitboxTable.attacker,hitboxTable.location,hitboxTable.location.Parent,Main.char}
+
+	connector = runService.Heartbeat:Connect(function()
+		if count < hitboxTable.hitboxTime then
+			local area = workspace:GetPartBoundsInBox(hitbox.CFrame, hitbox.Size,params)
+			if area then
+				local enemyList = {}
+				local enemySubjectList = {}
+				for index=1,#area, 1 do
+					local human = area[index].Parent
+					local humanoid = human:FindFirstChild("Humanoid")
+					if humanoid then
+						
+						if not enemyList[humanoid] then
+							local rayOrign = validator
+							local raycastParams = RaycastParams.new()
+							raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+							raycastParams.CollisionGroup = "RayGroup"
+							enemyList[humanoid] = true
+							
+							raycastParams.FilterDescendantsInstances = {hitbox,validator,hitboxTable.attacker,hitboxTable.location}
+							--validation = false
+							if validation == true then
+								local rayCast = workspace:Blockcast(validator.CFrame,validator.Size,direction,raycastParams)
+								wait(0.02)
+								if rayCast then
+									if rayCast.Instance.Parent == human  then 
+										local head = human:FindFirstChild("HumanoidRootPart")
+										hitboxTable.victim = human
+										hitboxTable.victimHumanoid = humanoid
+										hitboxTable.victimHumanoidRootPart = head
+										local victimPlayer = game.Players
+										
+										print(human)
+										hitboxTable.victimPlayer = victimPlayer:GetPlayerFromCharacter(human)
+										print(hitboxTable.victimPlayer)
+										local att1 = Instance.new("Attachment")
+										att1.Name = "Att1"
+										att1.Parent = validator
+										att1.WorldPosition =validator.Position
+										att1.Visible = true
+										local att2 = Instance.new("Attachment")
+										att2.Name = "Att2"
+										att2.Parent = validator
+										att2.WorldPosition = rayCast.Position
+										att2.Visible = true
+										local beam = Instance.new("Beam")
+										beam.Parent =validator
+										beam.Color = ColorSequence.new(Color3.new(1, 0.027451, 0.027451),Color3.new(1, 0.862745, 0.172549))
+										beam.Attachment0 = att1
+										beam.Attachment1 = att2
+										beam.Width0 = 0.3
+										beam.Width1 = 0.3 
+										beam.Segments = 12
+										local playerHit = rayCast.Instance.Parent:FindFirstChild("Humanoid")
+										if playerHit and head.Color ~= Color3.fromRGB(255,0,0) then
+												head.Color = Color3.fromRGB(255,0,0)
+												event:FireServer(hitboxTable)
+												Main.CollisionSetter(human, collisionGroupHitPlayer)
+												wait(hitboxTable.hitboxTime+0.2)
+												Main.CollisionSetter(human, collisionGroupPlayer)
+												head.Color = Color3.fromRGB(255, 255, 255)
+											--	hitbox:Destroy()
+										--		validator:Destroy()
+												
+												
+										end
+									end
+								end
+							else
+								local head = human:FindFirstChild("HumanoidRootPart")
+								hitboxTable.victim = human
+								hitboxTable.victimHumanoid = humanoid
+								hitboxTable.victimHumanoidRootPart = head
+								local victimPlayer = game.Players
+
+								print(human)
+								hitboxTable.victimPlayer = victimPlayer:GetPlayerFromCharacter(human)
+								event:FireServer(hitboxTable)
+							end
+						end
+					end
+				end
+				
+				count+=1
+			else
+				count=0
+				connector:Disconnect()
+			end
+
+		end
+	end)
+	
+	wait(hitboxTable.hitboxTime)
+	hitbox:Destroy()
+	validator:Destroy()
+end
+		
 
 function Main.ClientCalls(object)--msg,duration,knockback,force)--(msg, table)
 	local waitTime = 0.5
