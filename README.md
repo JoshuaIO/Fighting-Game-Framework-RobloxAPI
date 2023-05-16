@@ -12,5 +12,5 @@ This Method will be replaced with BoundingRayBox and MagnitudeHitbox.
 - Added BoundingRayBox
 Bounding Raybox is my take on combining the method of "GetPartInBoundingBox()" with a Blockcast validation to check if the user is hidden behind an object.
 
--Added Magnitude Hitbox
+- Added Magnitude Hitbox
 Simple hitbox method that compares range with every HumanoidRootPart Detected in Workspace.
