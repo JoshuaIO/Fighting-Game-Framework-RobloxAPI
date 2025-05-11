@@ -412,7 +412,7 @@ function Main.processPhysicsThread(object, target)
 end
 
 function Main.Hitstun(object)--duration,knockback,force)--table --Values need to be passed
-	print("AREA OF CODE TOUCHED: ")
+	print("AREA OF CODE TOUCHEDEXAMPLE: ")
 	print("HITSTUN OBJ: ",object)
 	local characterStateStatus = require(game.ReplicatedStorage.CharacterSample.CharacterState.CharacterStateModule)
 
