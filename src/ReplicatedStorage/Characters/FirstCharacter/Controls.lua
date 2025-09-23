@@ -31,6 +31,26 @@ local controls = {
 	
 }
 
+--Buffer Read system needs to be created here 
+--[[
+	1. Player Should Input a button
+	2. Button Should be validated and queued up to the method it's activating
+	3. Method should be queued up, in a "buffer read array" to then determine with the time, to dispatch the button
+	4.Bank should dispatch all the methods when ready
+	5. when bank read period is done, allow for a new array formation to hold inputs and queue up more inputs
+	6. this should happen later as it takes some studying
+	7. structure should be:
+		- Player Inputs
+			- Input gets sent to BufferReaderFunction
+			- BufferReader is a bank thats open for 20 frames, and queues animations
+				Ex: [PunchMethod,Punch2Method] 20Frames
+			- The buffer reader should not queue to the next attack until the animation is finished, this means if we have a buffer read of 20 frames
+			- We input a button, it runs the method, and an internal count continues, when the method is done and you still have frames, your next move is queued
+			- Ex: [(PUNCH   )(Punch)] 
+			-if the opponent is in hitFreeze, the reader will wait for the hit freeze, and not count down, or make pretections to help you
+								 
+]]--
+
 function controls.InputTest(input, isTyping)
 	local playerData = {
 		localplayer = playerSample,

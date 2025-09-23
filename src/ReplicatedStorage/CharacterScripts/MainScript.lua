@@ -45,6 +45,11 @@ local debounceHitCheck = false
 
 
 ---Physics Body Movers --
+--[[
+	These Body movers are used to controller characters in various different ways
+	these physics bodies can be applied to dashes, attacks, or any movement of any BasePart
+
+]]--
 ----[[
 function Main.BodyVelocity(parent, object)--force, direction, waitTime)--(parent,table)
 	--Deprecated
@@ -61,15 +66,14 @@ function Main.BodyVelocity(parent, object)--force, direction, waitTime)--(parent
 	-- ALL CLEAR
 end
 --]]--
+
+
 --FOR NEW PHYSICS, WE WANT TO EDIT THE HELPERTABLE'S ClientSelection
 --ClientSelection is what is processed through each pipeline
 
 function Main.LinearVelocity(parent, object)
 	-- Used for constant force pushes, similar to BodyVelocity
-	local humanStateFalling = Enum.HumanoidStateType.FallingDown
-	
---	print("PARENTER: ", parent)
---	print("OBJECTR: ", object)
+	local humanStateFalling = Enum.HumanoidStateType.FallingDown	
 	Main.player.Character.Humanoid:SetStateEnabled(humanStateFalling, false)
 	local linearVelocity = Instance.new("LinearVelocity")
 	local attachment0 = Instance.new("Attachment")
@@ -80,22 +84,16 @@ function Main.LinearVelocity(parent, object)
 	-- add attachment support later
 	linearVelocity.Attachment0 = attachment0
 	--Vector--
-	--print("LINEVELO PARENT: ", parent)
-	--print("LINEVELO object: ", object)
-	
+
 	local clientSelect = object.hitboxKBPhysics["LinearVelocity"].clientSelection
-	print("PHYSICS X: ", object.hitboxKBPhysics["LinearVelocity"].clientSelection.velocityConstraintMode)
 	if object.hitboxKBPhysics["LinearVelocity"].clientSelection.velocityConstraintMode == "Vector" then
 		linearVelocity.VelocityConstraintMode = object.hitboxKBPhysics["LinearVelocity"].velocityConstraintMode[clientSelect.velocityConstraintMode].constraint
-		print("DASHU: ", object.hitboxKBPhysics["LinearVelocity"].clientSelection)
+	
 		linearVelocity.RelativeTo = object.hitboxKBPhysics["LinearVelocity"].relativeTo[clientSelect.relativeTo]
 		linearVelocity.Color = BrickColor.new("Gold")
 		linearVelocity.Visible = true
 		linearVelocity.MaxForce = 999*99*99
 		object.hitboxKBPhysics["LinearVelocity"].velocityConstraintMode[clientSelect.velocityConstraintMode].vectorVelocity = object.knockback
-		print("VECTOR VELOCITY EXAMPU: ", object.hitboxKBPhysics["LinearVelocity"].velocityConstraintMode[clientSelect.velocityConstraintMode])
-		print("THE OBJECTVEL: ", object.knockback)
-		print("clientUser: ", object.hitboxKBPhysics["LinearVelocity"])
 		linearVelocity.VectorVelocity = object.hitboxKBPhysics["LinearVelocity"].velocityConstraintMode[clientSelect.velocityConstraintMode].vectorVelocity
 	end
 	
@@ -120,7 +118,9 @@ function Main.LinearVelocity(parent, object)
 		linearVelocity.LineVelocity = object.hitboxKBPhysics["LinearVelocity"].velocityConstraintMode[clientSelect.velocityConstraintMode].lineVelocity
 	end
 	
-	print("WAIT TIME: ",object.duration )
+
+
+	-- This logic is used for making projectiles out of Vectors
 
 	if object.hitboxStyle == "Projectile" and object.projectileActive == true then
 		--might need a statement, for when hitbox loads
@@ -157,18 +157,14 @@ function Main.VectorForce(parent, object)
 	attachment0.Parent = parent
 	--vectorForce.MaxForce = 999*99*99
 	local clientSelect = object.hitboxKBPhysics["VectorForce"].clientSelection
-	print("VECTOR ZZ: ", object.hitboxKBPhysics["VectorForce"].relativeTo[clientSelect.relativeTo])
-	--
+	
 	-- add attachment support later
-	print("VECTOR FORCE!")
 	vectorForce.Attachment0 = attachment0
 	vectorForce.RelativeTo = object.hitboxKBPhysics["VectorForce"].relativeTo[clientSelect.relativeTo]
 	vectorForce.ApplyAtCenterOfMass = object.hitboxKBPhysics["VectorForce"].applyAtCenterOfMass
 	vectorForce.Force = object.knockback
 	
-	print("WAIT TIME: ",object.duration )
 	wait(object.duration/10)
-	print("WAIT TIME AFTER: ",object.duration )
 	vectorForce:Destroy()
 	attachment0:Destroy()
 
@@ -234,7 +230,7 @@ function Main.AlignPosition(parent, object)
 	alignPosition:Destroy()
 	attachment0:Destroy()
 	
-	print("ALIGN POS: ", alignPosition)
+	
 		
 	--alignPosition.AngularVelocity = object.knockback
 	
@@ -333,9 +329,15 @@ function Main.Knockdown()--Values need to be passed
 	-- Needs fixing on delay and it's purpose in the overall script
 end
 
+--[[
+	This method "Main.ServerPhysicsCheck" is responsible  applying the physics that is chosen, to then run the code
+	for the BodyMover physics, using the name that we gain from the HelperTable's Physics body mover.
+	This is SPECIFICALLY USED FOR SERVER CALLING TO CLIENT, AS IN, CPU Using the physics(CPUS and AI opponents, exist on server only, but they can access client level data
+	best by using this.).
+]]--
+
 function Main.ServerPhysicsCheck( parent,object)
-	print("SERVER PHSYX PARENT: ", parent)
-	print("SERVER PHSYX PARENT: ", object)
+	
 	----[[
 	local function processPhysicsThreadForHitstun()
 		object.duration /= 10
@@ -378,6 +380,11 @@ function Main.ServerPhysicsCheck( parent,object)
 end
 
 --ChoosePhysicsToProcess
+
+--[[
+	Unlike "ServerPhysicsCheck" processPhysicsThread is used for the client and players specifically, as it is called in the Hitstun Method,
+	this is useful for processesing physics, and giving a client target to apply the physics too
+]]--
 function Main.processPhysicsThread(object, target)
 	--object.duration /= 10
 	print("PHYSIC THREAD: ", object.duration)
@@ -411,6 +418,14 @@ function Main.processPhysicsThread(object, target)
 	end	
 end
 
+--[[
+	Main.Hitstun is the main method that gets called when an enemy/player is attacked, as it's responsible for the following
+		- Figure out if the person touched was a player or opponent(if its a opponent for player, set their charMod parameters)
+		- This should assign where someone should be facing to be knocked
+		- apply physics necessary through this, and run in a coroutine.
+		- Adjust animation speed and hitfreeze values
+]]--
+
 function Main.Hitstun(object)--duration,knockback,force)--table --Values need to be passed
 	print("AREA OF CODE TOUCHED: ")
 	print("HITSTUN OBJ: ",object)
@@ -418,7 +433,7 @@ function Main.Hitstun(object)--duration,knockback,force)--table --Values need to
 
 	
 	-- Implement The Physics Reader--
-	--Physics type will determine what function gets used for the reading --
+	--Physics type will determine what function gets used for the readingz --
 	local playerCharacter = Main.player.Character
 	local animPlay = Main.player.Character.Humanoid.Animator:LoadAnimation(animationList.hitstunAnimTable[1])
 	
@@ -432,14 +447,19 @@ function Main.Hitstun(object)--duration,knockback,force)--table --Values need to
 	local distance = (object.victimHumanoidRootPart.Position - object.attackerPlayer.HumanoidRootPart.Position) --+ HelperModule.hitboxTable.knockbackMultiplier 
 	object.knockback = (distance * object.knockbackMultiplier) + object.upForce
 	characterStateStatus.playerToHitstun = object.victim -- get player from character, if nil, player to hitstun
-	print("PLAYER FROM CHAR: ", characterStateStatus.playerToHitstun)
-	print("PLAYA TO CHAR: ", game.Players:GetPlayerFromCharacter(characterStateStatus.playerToHitstun))
+	
 	if object.projectileActive ~= nil and object.projectileActive == true then
 		object.projectileActive=false
 	end
-	print("VICTIMER: ", object.victim)
+
+	--print("VICTIM: ", object.victim)
 	if (object.victimHumanoidRootPart ~= nil) then
+		
+		--Please use one of these for knockback calc when someone is hit --
+		--object.victimHumanoidRootPart.CFrame = CFrame.lookAt(object.victimHumanoidRootPart.Position, object.attackerHumanoidRootPart.Position)
 		object.victimHumanoidRootPart.CFrame = CFrame.lookAt(Vector3.new(object.victimHumanoidRootPart.Position.X,3.3,object.victimHumanoidRootPart.Position.Z), Vector3.new(object.attackerHumanoidRootPart.Position.X,3.3,object.attackerHumanoidRootPart.Position.Z))
+		---------------------------------------------------------------------
+
 		if characterStateStatus.hitstun == false then
 			highlight = Instance.new("Highlight")
 			highlight.FillColor = Color3.fromRGB(math.random(0,255),math.random(0,255),math.random(0,255))
@@ -451,7 +471,7 @@ function Main.Hitstun(object)--duration,knockback,force)--table --Values need to
 		end
 	end
 	
-	print("OBJECTOR: ", object.hitboxKBPhysics["AlignPosition"].mode["oneAttachment"])
+
 	
 	-------EDIT HERE-------
 	object.duration /= 10
@@ -470,7 +490,6 @@ function Main.Hitstun(object)--duration,knockback,force)--table --Values need to
 	
 	
 	---Add hitstop Delay here which Should delay play, this should also delay attackerAnim on Hit
-	--HIT STOP LOGIC SHOULD BE ADDED HERE
 	
 	-- WE NEED CLIENT HITSTOP
 	local characterModuleScript = require(game.ReplicatedStorage.CharacterSample.CharacterState.CharacterStateModule)
@@ -493,29 +512,11 @@ function Main.Hitstun(object)--duration,knockback,force)--table --Values need to
 		animPlay:AdjustSpeed(1)
 	end
 	
-	
-	
-	print("FOOTSTOP DOES THIS RUN")
-	
-	--animPlay:AdjustSpeed(0)
-	--print("ATTACKER IS: ", HelperModule.hitboxTable.attackerHumanoidRootPart.Parent.Humanoid.Animator:GetPlayingAnimationTracks())
-	--characterModuleScript.generalTableValueSetter("hitStopCooldownCounter", HelperModule.hitboxTable.hitStop)
-	
-	--print("Hit stopper: ", characterModuleScript.generalTableValueGetter("hitStopCooldownCounter"))
-	--print("HitStop: ", object.hitStop)
-
-	--animPlay:AdjustSpeed(1)
-	
-	--task.delay()
 	--Animation speed that needs to yield when paused for attacker and the client
 	
 	
 	coroutine.resume(physicsThread,object, object.victimHumanoidRootPart)
 	-- FIX ANIMATION LIST!!! --
-	
-	
-	
-
 
 	print("ANIMATION SPEED: ", animPlay.Speed)
 	--animPlay:AdjustSpeed(0) 
@@ -543,6 +544,10 @@ function Main.Hitstun(object)--duration,knockback,force)--table --Values need to
 end
 
 
+--[[
+	Main.Dash(), is a generic script that uses the physics body to create a dash, specifically LinearVelocity
+]]--
+
 function Main.Dash()--Values need to be passed
 	local physicsLocation = Main.player.Character.HumanoidRootPart
 --	local check = "serverCheck"
@@ -551,12 +556,11 @@ function Main.Dash()--Values need to be passed
 	object.knockback = physicsLocation.CFrame.LookVector.Unit *130
 	object.duration = 0.5
 	print(characterStatesTable.hitstun)
-	print("Dasher") -- Remove
+	
 --	event:FireServer(Main.player,check)
 	if debounce2 == false then
 		debounce2 = true
-	--	print("INVERT") -- Remove
-	--	print(physicsLocation) -- Remove
+	
 		local animPlay = Main.player.Character.Humanoid.Animator:LoadAnimation(animationList.dash)
 		animPlay:Play()
 		print(animPlay)
@@ -570,13 +574,18 @@ function Main.Dash()--Values need to be passed
 		wait(0.02)
 		debounce2 = false
 	end
-		
-		
+				
 end
+
+
+--[[
+	Main.CreateProjectile is used for creating projectiles, within the General Fighting game Framework.
+	this allows a projectile to be created, use helperTable values, load a hitbox and the physics 
+	this method also has options for BoundingRayBox(Still does not include validation currently), MagnitudeHitbox, CreateHitbox(old method)
+]]--
 
 function Main.CreateProjectile(object, projectileDirection)
 	
-	print("PROJECTILE DIRECTION", projectileDirection)
 	local newProjectile = Instance.new("Part")
 	newProjectile.Parent = object.attacker.Character
 	newProjectile.CFrame *= CFrame.Angles(math.rad(0),math.rad(0),math.rad(0))
@@ -589,7 +598,6 @@ function Main.CreateProjectile(object, projectileDirection)
 	newProjectile.Anchored = false--true
 	newProjectile.CFrame *= object.location.CFrame --* CFrame.Angles(Main.player.Character.HumanoidRootPart.CFrame.X,Main.player.Character.HumanoidRootPart.CFrame.Y,Main.player.Character.HumanoidRootPart.CFrame.Z)
 	newProjectile.Size = object.size
-	print("PROJECTILE HAS LOADED ")
 	object.projectile = newProjectile
 	object.knockback = projectileDirection--HelperModule.hitboxTable.projectileTravelSpeed--Vector3.new(5,5,5)---object.projectileVelocity
 	object.location = newProjectile
@@ -617,9 +625,6 @@ function Main.CreateProjectile(object, projectileDirection)
 	
 	coroutine.resume(projectileHitboxThread)
 	coroutine.resume(physicsThread, object,newProjectile)
-	
-	print("PROJECTILE HITBOX TABLE: ", object.projectile)
-	print("PROJECTILE HITBOX TABLE Objects: ", object)
 
 	while coroutine.status(physicsThread) ~= "dead" do
 		
@@ -662,6 +667,10 @@ function Main.Guarding()
 		
 end
 
+--[[
+	Helper method that assigns collision group to base parts
+]]--
+
 function Main.CollisionSetter(item,collisionGroup)
 	--item is the model that will be searched through
 	--collision Group will be set to this
@@ -682,6 +691,13 @@ function Main.CreateHurtbox(hitboxTable)--Pass Hurtbox Location, 2024 is this ev
 	--Main.hurtboxLocation.Value = Main.player.Character.HumanoidRootPart.Position
 	--local msg = "newHurtbox" 
 	-- characterStateTable contains hurtbox details for loading hurtboxes in areas that is needed along with it's size
+	--if static is enabled run method
+	--if dynamic is enable add
+
+	-- Creates generic Area for hurtbox, and weld to a location we give it too
+	-- for an example,
+	-- createStaticHurtbox would call CreateHurtbox() -- this should have the hitboxTable, and have an area to attach the hurtbox too
+	-- Example is CreateHurtbox(hitboxTable, )
 	
 	
 end
@@ -689,6 +705,10 @@ end
 function Main.createStaticHurtbox(hitboxTable)
 	characterStatesTable.hurtboxLocation = Main.player.Character.HumanoidRootPart.Position
 	-- Make a folder that contains hurtbox info, and clear it when it needs to be deleted
+	-- create folder where hurtbox data will live
+	
+	
+	
 end
 
 function Main.createDynamicHurtbox(hitboxTable)
@@ -697,7 +717,10 @@ end
 --Hurtboxes
 
 
-
+--[[
+	Main.CreateHitbox, Old Deprecated method of creating hitboxes. I include this here due to legacy, but I strongly advise, not to use this method, please use
+	BoundingRayBox instead.
+]]--
 
 function Main.CreateHitbox(hitboxTable)--areaLocation,damage,hitstunDuration, hitboxTime,size, knockback,force,humanoidAttacker)--Pass Hitbox Location
 	local debounce = false
@@ -767,6 +790,10 @@ function Main.CreateHitbox(hitboxTable)--areaLocation,damage,hitstunDuration, hi
 	end	
 end
 
+--[[
+	Main.MagnitudeHitbox, This is useful to create magnitude based hitboxes, basically hit area is determined by if your inside an area of space
+]]--
+
 function Main.MagnitudeHitbox(hitboxTable)
 	local list = game.Workspace:GetChildren()
 	for index=1,#list,1 do -- Use in pairs
@@ -791,6 +818,15 @@ function Main.MagnitudeHitbox(hitboxTable)
 		
 	end
 end
+
+
+--[[
+	Main.BoundingRayBox is the main controller that handles all hitbox creations, when it comes to traditional hitboxes.
+	This method comes with a feature to validate how the hitbox occured, to ensure that the hits do not go through walls(currently this feature is in dev)
+	This code will send the info to the server, and the server will check if the person is a player or opponent, if a player, it will communicate the details over
+	from the server to client(basically client>server>client) to ensure smooth communication of hits
+
+]]--
 
 function Main.BoundingRayBox(hitboxTable)
 	local validation  = hitboxTable.validation
@@ -989,7 +1025,7 @@ function Main.BoundingRayBox(hitboxTable)
 				count=0.00
 				connector:Disconnect()
 			end
-			--print("SUBJECT LIST KIVAXDZ: ")
+			
 		end
 	end)
 	

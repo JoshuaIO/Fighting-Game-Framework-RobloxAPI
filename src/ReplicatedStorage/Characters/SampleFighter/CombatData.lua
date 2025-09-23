@@ -40,6 +40,8 @@ local combatData = {
 			isHoldKeyFrame = {false,false},--false,--Pass player to a function to always get the newest character
 			attackCooldown = 1.7, -- cool down for after attack
 			hitboxLocation = {MainModule.player.Character.LeftHand,MainModule.player.Character.LeftHand},--characterStateModule.mainPlayer.Character.LeftHand,--(MainModule.player == game.Players.LocalPlayer) and MainModule.player.Character.LeftHand or nil,--MainModule.player.Character.LeftHand,--MainModule.player.Character:FindFirstChild("LeftHand"),--script.Parent.LeftFist,
+			rootPath = tostring(MainModule.player.Character:GetFullName()), -- Please use these paths if you are using the folderMethod from dual blade project
+			parentPath = ".Katana.", -- Please use these paths if you are using the folderMethod from dual blade project
 			hitboxDamage = {2,2},
 			hitstunDuration = {50,50},
 			hitboxTime = {(18/60), (18/60)},

@@ -16,10 +16,12 @@ local HitboxTable = HelperModule.hitboxTable
 local combatDataTemp = nil
 
 -- Combat Data Receiver, yields until the MainServer Provides it with a Character from CharacterStateModule
+--Use this when utilizing yout hitbox from tools and not from a character folder(or just anything not tool related)
 local combatDataReceiver = clientReceive:InvokeServer("SampleCharacter")
---local combatDataReceiver = clientReceive:InvokeServer("SampleCharacter") --change this to be more generic
+
 local combatData = require(combatDataReceiver.CombatData)--clientReceive.Event:Connect(clientOnCall) --require(script.Parent.CombatData)]]--
 local characterStateModule = require(replicatedStorage.CharacterSample.CharacterState.CharacterStateModule) -- remove this
+
 
 
 --print("RemoteFunction VAL: ", combatDataReceiver)
@@ -49,6 +51,12 @@ local module = {
 	
 }
 
+function module.setCharacterUtilities(player,character)
+	print("Test output from Server SelectionsZX")
+	combatDataReceiver = clientReceive:InvokeServer("SampleCharacter")
+	combatData = require(combatDataReceiver.CombatData)
+end
+
 function module.comboIncrement(currentThreadCombo)
 	--print("ANIMATION ALLOWED: ",animation)
 	print("THREAD COMBO INCREMENT: ", currentThreadCombo)
@@ -67,10 +75,18 @@ end
 
 --We need a function that will processPhysicsDirection, as for projectiles this does not change from CombatWriter
 
-function module.fixPlayerCharacterPath(hitboxLocationPath)
+function module.fixPlayerCharacterPath(hitboxLocationPath, combatDataVariable)
 	-- This method aims to solve the issue of CombatData having old information of player Location and status
 	local dir="Workspace."
 	local fullPathStringForOldHitbox = tostring(hitboxLocationPath:GetFullName())
+
+	-------Use these for folder path(basically not using tools to do hitboxes )------------
+	--print("HITBOX LOCATION PATH: ", hitboxLocationPath)
+	--print("FullcombatVariable: ", combatDataVariable)
+	--print("Revive Path: ", combatDataVariable.rootPath..combatDataVariable.parentPath..tostring(hitboxLocationPath))
+	--local fullPathStringForOldHitbox = tostring(hitboxLocationPath:GetFullName())
+	--local finalStringBuild =  combatDataVariable.rootPath..combatDataVariable.parentPath..tostring(hitboxLocationPath) --Use this logic instead of fixedBuildString
+	---------------------------------------------------------------------------------------
 
 	local newPathStringForHitbox = string.gsub(fullPathStringForOldHitbox, tostring(MainModule.player.Character:GetFullName()), tostring(MainModule.player.Character:GetFullName()))
 	local fixedBuildString = dir..newPathStringForHitbox
@@ -258,7 +274,7 @@ function module.HitboxDetailLoader(keyframe, keyframePoint, combatDataVariable)
 				HitboxTable.attackerPlayer = MainModule.player.Character
 				HitboxTable.attackerHumanoidRootPart = MainModule.player.Character.HumanoidRootPart
 				HitboxTable.msg = combatDataVariable.hitboxMessage[module.keyframeHitboxLoaderNumber]
-				local hitboxLocationPath = combatDataVariable.hitboxLocation[module.keyframeHitboxLoaderNumber].Parent == MainModule.player.Character and combatDataVariable.hitboxLocation[module.keyframeHitboxLoaderNumber] or module.fixPlayerCharacterPath(combatDataVariable.hitboxLocation[module.keyframeHitboxLoaderNumber])
+				local hitboxLocationPath = combatDataVariable.hitboxLocation[module.keyframeHitboxLoaderNumber].Parent == MainModule.player.Character and combatDataVariable.hitboxLocation[module.keyframeHitboxLoaderNumber] or module.fixPlayerCharacterPath(combatDataVariable.hitboxLocation[module.keyframeHitboxLoaderNumber], combatDataVariable)
 				HitboxTable.location = hitboxLocationPath
 				HitboxTable.validLocation = combatDataVariable.validationLocation[module.keyframeHitboxLoaderNumber]
 				HitboxTable.cframe = combatDataVariable.validationCFrame[module.keyframeHitboxLoaderNumber]

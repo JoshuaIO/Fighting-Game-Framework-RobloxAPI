@@ -21,7 +21,7 @@ UIS.InputBegan:Connect(controlModule.InputTest)
 UIS.InputEnded:Connect(controlModule.HoldKeys)
 charWeld.LoadWeld()
 wait(3)
-MainModule.CreateHurtbox()
+MainModule.CreateHurtbox() --hurtbox loading
 --animationModule.HitboxAnimCall()
 eventClient.OnClientEvent:Connect(MainModule.ClientCalls)
 serverToClient.OnClientEvent:Connect(MainModule.newClientTouch)
