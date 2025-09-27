@@ -37,7 +37,17 @@ function controls.InputTest(input, isTyping)
 	--	loadout = playerSample:FindFirstChild("Data").Loadout,
 	--	magicEquipOne = playerSample:FindFirstChild("Data").Loadout.MagicEquipOne,
 	--	magicEquipTwo = playerSample:FindFirstChild("Data").Loadout.MagicEquipTwo,
-	} 
+	}
+	
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and not isTyping then
+	
+		print("MOUSE ATK 1")
+	end
+	
+	if input.UserInputType == Enum.UserInputType.MouseButton2 and not isTyping then
+		print("MOUSE ATK 2")
+	end
+
 	if input.KeyCode == controls.button1 then
 		print(controls.button1)
 		

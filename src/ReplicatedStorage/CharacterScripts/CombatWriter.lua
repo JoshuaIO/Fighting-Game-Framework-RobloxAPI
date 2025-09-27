@@ -7,6 +7,22 @@ local eventSendToAll = game.ReplicatedStorage.Events.SendServerToClient
 local eventSendToServerCast = game.ReplicatedStorage.Events.SendToServerFromCombatWriter
 
 
+---------------CombatWriter----------------------------------------
+--[[
+	The CombatWriter is responsible for grabbing the lua data from CombatData, adapting it
+	and cleaning it to be sent over to the mainscript. this is an import generic helper file that translate details over,
+	so they mainscript can use the logic needed. this includes Physics calls, what hitbox to use, data to pass over, etc.
+
+	The CombatWriter yields to the server on bindable function, to refresh the character it's using, and search for the specific combat data to use
+	
+
+	File Flow
+	CombatData -->CombatWriter --> MainScript
+					|			  ^
+					|->HelperTable|
+]]--
+-------------------------------------------------------------------
+
 local playerX = game.Players.LocalPlayer
 --local EffectLib = require(playerX.Character:WaitForChild("ClientSideEffects"))
 local MainModule = require(replicatedStorage.CharacterScripts.MainScript)
@@ -22,13 +38,6 @@ local combatDataReceiver = clientReceive:InvokeServer("SampleCharacter")
 local combatData = require(combatDataReceiver.CombatData)--clientReceive.Event:Connect(clientOnCall) --require(script.Parent.CombatData)]]--
 local characterStateModule = require(replicatedStorage.CharacterSample.CharacterState.CharacterStateModule) -- remove this
 
-
-
---print("RemoteFunction VAL: ", combatDataReceiver)
---wait(2)
---combatDataTemp = clientOnCall()
---print("COMBAT VALZZ: ", combatData)
---print("Maybe it works: ", combatDataTemp)
 
 --Redo Pipeline and have combat data separate
 local module = {
@@ -51,6 +60,7 @@ local module = {
 	
 }
 
+-- Bindable to be set by server first, before anything else is ran
 function module.setCharacterUtilities(player,character)
 	print("Test output from Server SelectionsZX")
 	combatDataReceiver = clientReceive:InvokeServer("SampleCharacter")
@@ -58,19 +68,12 @@ function module.setCharacterUtilities(player,character)
 end
 
 function module.comboIncrement(currentThreadCombo)
-	--print("ANIMATION ALLOWED: ",animation)
+
 	print("THREAD COMBO INCREMENT: ", currentThreadCombo)
 	module.debounce = false
-	--currentThreadCombo += 1
 	characterStateModule.comboIncrementCounterAssitant += 1
 	characterStateModule.generalTableValueSetter("combo",characterStateModule.comboIncrementCounterAssitant)
-	--module.combo += 1--currentThreadCombo
-	--characterStateModule.combo += currentThreadCombo
-	
-	
-	print("THREAD After COMBO INCREMENT: ", module.combo)
---	print(animation)
-	--animation:Destroy()
+
 end
 
 --We need a function that will processPhysicsDirection, as for projectiles this does not change from CombatWriter
@@ -104,6 +107,8 @@ function module.fixPlayerCharacterPath(hitboxLocationPath, combatDataVariable)
 
 end
 
+-- Generic Searcher for keyPair, related to reading combat data table values
+
 function module.genericKeyPairSearch(combatDataFields ,combatDataKeyGoal)
 	print("ANIMATION SELECTED :  ANIMS: ", combatDataFields, combatDataKeyGoal)
 	for key, value in pairs(combatDataFields) do
@@ -116,6 +121,7 @@ function module.genericKeyPairSearch(combatDataFields ,combatDataKeyGoal)
 	
 end
 
+-- processes the knock back values from combatData, to be then used in knockback value
 function module.processKnockbackValue(combatDataVariable)
 	-- Please use 1 as the lowest knockback value
 	local knockbackValue = 1
@@ -129,6 +135,9 @@ function module.processKnockbackValue(combatDataVariable)
 	HelperModule.hitboxTable.hitboxPhysicsChoice = combatDataVariable.physicsType[module.keyframeHitboxLoaderNumber]
 	return knockbackValue
 end
+
+
+--Logic for processing projectile data from CombatWriter
 
 function module.processProjectileFireSource(combatDataVariable)
 	local dir = "Workspace."
@@ -160,8 +169,12 @@ function module.processProjectileFireSource(combatDataVariable)
 	 print("FINAL PATH OF CREATION: ", mergeForce)
 	return mergeForce
 end
---Hitboxes
---runAttack(keyframe, keyframePoint, combatData)
+
+
+--[[
+	module.physicsWriter, is the main driver code responsible for processing physics types,
+	and the physics to be used in HitboxTable.hitboxKBPhysics, to be read by a clientSelection in HelperTable.
+]]--
 
 function module.physicsWriter(combatDataVariable)
 	--print(HitboxTable)
@@ -249,6 +262,11 @@ function module.physicsWriter(combatDataVariable)
 	return combatDataVariable.physicsType[module.keyframeHitboxLoaderNumber]
 end
 
+
+--[[
+	Main Driver for processing CombatData details, into CombatWriter translations, to be shipped off to MainScript.
+	some of the details also writes into HelprTable Module.
+]]--
 
 function module.HitboxDetailLoader(keyframe, keyframePoint, combatDataVariable)
 	
@@ -340,7 +358,7 @@ function module.HitboxDetailLoader(keyframe, keyframePoint, combatDataVariable)
 
 end
 
-
+-- Allows for melee combo, whuich grabs and reads contents of combatWriter
 function module.MeleeCombo()
 	--local combatData = require(combatDataReceiver.CombatData)
 	if module.debounce == false then
@@ -382,9 +400,9 @@ function module.MeleeCombo()
 		event:FireServer(MainModule.player,check)
 		local animPlay = MainModule.player.Character.Humanoid.Animator:LoadAnimation(animation)
 	
+
 		animPlay:Play()
-		--animPlay:AdjustSpeed(HelperModule.hitboxTable.animationSpeed)
-		--characterStateModule.generalTableValueSetter("characterAnimationSpeed",characterStateModule.characterAnimationSpeedNumberHolder)
+		
 		animPlay:AdjustSpeed(characterStateModule.animationModuleScript.generalTableValueGetter("generalAnimationSpeed"))
 		
 	
@@ -411,9 +429,7 @@ function module.MeleeCombo()
 			characterStateModule.generalTableValueSetter("meleeComboStopped", true)
 			--------ComboIncrement----------
 			module.comboIncrement(characterStateModule.comboIncrementCounterAssitant) --currentThreadCombo
-			
-			
-			--print("COMBO GET: ", characterStateModule.generalTableValueGetter("combo"))
+	
 			-----------------------------------------------------------------
 			
 			
